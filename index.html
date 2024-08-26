@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Social Media Platform</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <h1>Social Media Platform</h1>
+
+      <!-- Registration Form -->
+      <div id="registerForm">
+        <h2>Register</h2>
+        <input type="email" id="registerEmail" placeholder="Email" />
+        <input type="password" id="registerPassword" placeholder="Password" />
+        <button onclick="register()">Register</button>
+      </div>
+
+      <!-- Login Form -->
+      <div id="loginForm">
+        <h2>Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email" />
+        <input type="password" id="loginPassword" placeholder="Password" />
+        <button onclick="login()">Login</button>
+      </div>
+
+      <!-- Post Creation Form -->
+      <div id="postForm">
+        <input
+          type="text"
+          id="postContent"
+          placeholder="What's on your mind?"
+        />
+        <button onclick="createPost()">Post</button>
+      </div>
+
+      <!-- Post Feed -->
+      <div id="posts"></div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
