@@ -19,13 +19,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const password = registerPassword.value;
     if (email.endsWith("@noroff.no") || email.endsWith("@stud.noroff.no")) {
       try {
-        const response = await fetch("https://api.example.com/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        });
+        const response = await fetch(
+          "https://v2.api.noroff.dev/auth/register",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+          }
+        );
         const data = await response.json();
         console.log("Registration successful:", data);
       } catch (error) {
@@ -43,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = loginEmail.value;
     const password = loginPassword.value;
     try {
-      const response = await fetch("https://api.example.com/login", {
+      const response = await fetch("https://v2.api.noroff.dev/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
    */
   async function fetchPosts() {
     try {
-      const response = await fetch("https://api.example.com/posts");
+      const response = await fetch("https://v2.api.noroff.dev/social/posts");
       const posts = await response.json();
       postsContainer.innerHTML = "";
       posts.forEach((post) => {
@@ -98,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const content = postContent.value;
     if (content && authToken) {
       try {
-        await fetch("https://api.example.com/posts", {
+        await fetch("https://v2.api.noroff.dev/social/posts", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -136,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
    */
   async function updatePost(id, content) {
     try {
-      await fetch(`https://api.example.com/posts/${id}`, {
+      await fetch(`https://v2.api.noroff.dev/social/posts/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -159,7 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
    */
   window.deletePost = async function (id) {
     try {
-      await fetch(`https://api.example.com/posts/${id}`, {
+      await fetch(`https://v2.api.noroff.dev/social/posts/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${authToken}`,
