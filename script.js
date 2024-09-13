@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginEmail = document.getElementById("loginEmail");
   const loginPassword = document.getElementById("loginPassword");
 
-  let authToken = null;
+  let authToken = localStorage.getItem("authToken");
 
   // Fetch and display posts on page load
   fetchPosts();
@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (email.endsWith("@noroff.no") || email.endsWith("@stud.noroff.no")) {
       try {
         const response = await fetch(
-          "https://v2.api.noroff.dev/auth/register",
+          "https://v2.api.noroff.dev/api/auth/register",
           {
             method: "POST",
             headers: {
@@ -30,12 +30,12 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         );
         const data = await response.json();
-        console.log("Registration successful:", data);
+        console.log("Success!:", data);
       } catch (error) {
-        console.error("Error registering user:", error);
+        console.error("Error:", error);
       }
     } else {
-      alert("Please use a @noroff.no or @stud.noroff.no email.");
+      alert("Please use @noroff.no or @stud.noroff.no email.");
     }
   }
 
@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = loginEmail.value;
     const password = loginPassword.value;
     try {
-      const response = await fetch("https://v2.api.noroff.dev/auth/login", {
+      const response = await fetch("https://v2.api.noroff.dev/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const data = await response.json();
       authToken = data.token;
+      localStorage.setItem("authToken", authToken); // Save token to localStorage
       console.log("Login successful:", data);
       fetchPosts();
     } catch (error) {
@@ -63,13 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Fetch all posts from the API and display them.
-   * @async
-   * @function fetchPosts
-   * @returns {Promise<void>} A promise that resolves when the posts have been fetched and displayed.
-   * @description This function fetches all posts from the API and displays them in the posts container. It is called on page load and after creating, updating, or deleting a post.
-   * @example
-   * fetchPosts();
+   * Fetch all posts from the API and display all posts.
    */
   async function fetchPosts() {
     try {
@@ -80,10 +75,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const postElement = document.createElement("div");
         postElement.className = "post";
         postElement.innerHTML = `
-                    <p>${post.content}</p>
-                    <button onclick="editPost(${post.id}, '${post.content}')">Edit</button>
-                    <button onclick="deletePost(${post.id})">Delete</button>
-                `;
+          <p>${post.content}</p>
+          <button onclick="editPost(${post.id}, '${post.content}')">Edit</button>
+          <button onclick="deletePost(${post.id})">Delete</button>
+        `;
         postsContainer.appendChild(postElement);
       });
     } catch (error) {
@@ -93,9 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Create a new post using the API.
-   * @async
-   * @function createPost
-   * @returns {Promise<void>} A promise that resolves when the post has been created.
    */
   async function createPost() {
     const content = postContent.value;
@@ -119,8 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Edit an existing post.
-   * @param {number} id - The ID of the post.
-   * @param {string} currentContent - The current content of the post.
    */
   window.editPost = function (id, currentContent) {
     const newContent = prompt("Edit your post:", currentContent);
@@ -131,11 +121,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /**
    * Update a post using the API.
-   * @async
-   * @function updatePost
-   * @param {number} id - The ID of the post.
-   * @param {string} content - The new content of the post.
-   * @returns {Promise<void>} A promise that resolves when the post has been updated.
    */
   async function updatePost(id, content) {
     try {
@@ -154,11 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Delete a post using the API.
-   * @async
-   * @function deletePost
-   * @param {number} id - The ID of the post.
-   * @returns {Promise<void>} A promise that resolves when the post has been deleted.
+   * Delete a post.
    */
   window.deletePost = async function (id) {
     try {
