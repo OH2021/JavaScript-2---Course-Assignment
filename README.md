@@ -1,1 +1,1 @@
-# JavaScript-2---Course-Assignment
+# JavaScript-2-Course-Assignment
