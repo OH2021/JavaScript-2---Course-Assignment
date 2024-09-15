@@ -14,13 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return token;
   }
 
-  // Register a new user
   window.register = async function () {
     const email = registerEmail.value;
     const password = registerPassword.value;
     const name = registerName.value;
 
-    // Validate email format
     if (!email.endsWith("@noroff.no") && !email.endsWith("@stud.noroff.no")) {
       alert("Please use @noroff.no or @stud.noroff.no email.");
       return;
@@ -41,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response.ok) {
         console.log("Registration successful:", data);
         if (data.token) {
-          localStorage.setItem("authToken", data.token); // Store the token in localStorage
+          localStorage.setItem("authToken", data.token);
           console.log("Stored authToken in localStorage:", getAuthToken());
         } else {
           alert("Registration successful. Please log in to continue.");
@@ -94,7 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
             "Token saved in localStorage:",
             localStorage.getItem("authToken")
           );
-          fetchPosts(); // Fetch posts after successful login
+          await createApiKey();
+          fetchPosts(); // Fetch posts after login
         } else {
           console.error("No accessToken received in the response.");
           alert("Login failed. No accessToken received.");
@@ -110,12 +109,55 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  async function fetchPosts(searchTerm = "") {
+  async function createApiKey() {
     const authToken = getAuthToken();
-    console.log("Fetching posts with authToken:", authToken);
+    console.log("Creating API Key with authToken:", authToken);
 
     if (!authToken) {
-      alert("You must be logged in to fetch posts.");
+      alert("You must be logged in to create an API Key.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "https://v2.api.noroff.dev/auth/create-api-key",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: "My API Key name",
+          }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Create API Key response data:", data);
+
+      if (response.ok) {
+        console.log("API Key created:", data);
+        localStorage.setItem("apiKey", data.data.key);
+      } else {
+        console.error("Error creating API Key:", data.errors);
+        const errorMessage =
+          data.errors.map((error) => error.message).join(", ") ||
+          "Failed to create API Key. Please try again.";
+        alert(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error creating API Key:", error);
+    }
+  }
+
+  async function fetchPosts(searchTerm = "") {
+    const authToken = getAuthToken();
+    const apiKey = localStorage.getItem("apiKey");
+    console.log("Fetching posts with authToken and apiKey:", authToken, apiKey);
+
+    if (!authToken || !apiKey) {
+      alert("You must be logged in and have an API Key to fetch posts.");
       return;
     }
 
@@ -123,7 +165,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("https://v2.api.noroff.dev/social/posts", {
         headers: {
           Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json", // Optional, but good practice to include
+          "X-Noroff-API-Key": apiKey,
+          "Content-Type": "application/json",
         },
       });
 
@@ -144,17 +187,26 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response.ok) {
         postsContainer.innerHTML = "";
 
-        posts
-          .filter((post) => post.content.includes(searchTerm))
+        const postsData = posts.data || [];
+
+        postsData
+          .filter(
+            (post) =>
+              post.body &&
+              post.body.toLowerCase().includes(searchTerm.toLowerCase())
+          )
           .forEach((post) => {
             const postElement = document.createElement("div");
             postElement.className = "post";
-            postElement.innerHTML = `\
-              <p>${post.content}</p>\
-              <button onclick="editPost(${post.id}, '${post.content}')">Edit</button>\
-              <button onclick="deletePost(${post.id})">Delete</button>\
-              <button onclick="viewPost(${post.id})">View Post</button>\
-            `;
+            postElement.innerHTML = `
+                        <h3>${post.title || "No Title"}</h3>
+                        <p>${post.body || "No Content"}</p>
+                        <button onclick="viewPost(${post.id})">View</button>
+                        <button onclick="editPost(${post.id}, '${
+              post.body
+            }')">Edit</button>
+                        <button onclick="deletePost(${post.id})">Delete</button>
+                    `;
             postsContainer.appendChild(postElement);
           });
       } else {
@@ -177,10 +229,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const response = await fetch(
-        `https://v2.api.noroff.dev/social/posts/<id>`,
+        `https://v2.api.noroff.dev/social/posts/${id}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
+            "X-Noroff-API-Key": localStorage.getItem("apiKey"),
           },
         }
       );
@@ -194,7 +247,52 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           post = JSON.parse(responseText);
           console.log("Parsed post data:", post);
-          alert(`Post ID: ${post.id}\nContent: ${post.content}`);
+
+          // Extracting post data
+          const postData = post.data || {};
+          const postTitle = postData.title || "No Title";
+          const postBody = postData.body || "No Content";
+          const postImage = postData.media ? postData.media.url : null;
+
+          // Constructing the HTML for the modal
+          const postDetails = `
+            <div id="postModal" class="modal">
+              <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>${postTitle}</h3>
+                <p>${postBody}</p>
+                ${
+                  postImage
+                    ? `<img src="${postImage}" alt="Post Image" style="max-width: 100%; height: auto;">`
+                    : ""
+                }
+              </div>
+            </div>
+          `;
+
+          // Append modal HTML to body
+          document.body.insertAdjacentHTML("beforeend", postDetails);
+
+          // Get the modal and close button elements
+          const modal = document.getElementById("postModal");
+          const closeButton = document.querySelector(".close");
+
+          // Display the modal
+          modal.style.display = "block";
+
+          // When the user clicks on the close button, close the modal
+          closeButton.onclick = function () {
+            modal.style.display = "none";
+            modal.remove();
+          };
+
+          // When the user clicks anywhere outside the modal, close it
+          window.onclick = function (event) {
+            if (event.target === modal) {
+              modal.style.display = "none";
+              modal.remove();
+            }
+          };
         } catch (jsonError) {
           console.error("Failed to parse JSON post response:", jsonError);
           alert("Error parsing post. Please try again.");
@@ -209,21 +307,41 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   window.createPost = async function () {
-    const content = postContent.value;
+    const content = postContent.value.trim();
     const authToken = getAuthToken();
+    const apiKey = localStorage.getItem("apiKey");
 
-    if (content && authToken) {
+    if (content && authToken && apiKey) {
+      const title = prompt("Enter the title for your post:");
+
+      if (!title) {
+        alert("Title cannot be empty.");
+        return;
+      }
+
       try {
-        await fetch("https://v2.api.noroff.dev/social/posts", {
+        const response = await fetch("https://v2.api.noroff.dev/social/posts", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${authToken}`,
+            "X-Noroff-API-Key": apiKey,
           },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ title, body: content }),
         });
-        postContent.value = "";
-        fetchPosts();
+
+        if (response.ok) {
+          postContent.value = "";
+          fetchPosts();
+        } else {
+          const errorResponse = await response.json();
+          console.error("Error creating post:", errorResponse);
+          alert(
+            `Failed to create the post: ${errorResponse.errors
+              .map((e) => e.message)
+              .join(", ")}`
+          );
+        }
       } catch (error) {
         console.error("Error creating post:", error);
       }
@@ -234,30 +352,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.editPost = function (id, currentContent) {
     const newContent = prompt("Edit your post:", currentContent);
-    if (newContent) {
+    if (newContent !== null) {
       updatePost(id, newContent);
     }
   };
 
   async function updatePost(id, content) {
     const authToken = getAuthToken();
-    console.log("Updating post with authToken:", authToken);
+    const apiKey = localStorage.getItem("apiKey");
 
-    if (!authToken) {
-      alert("You must be logged in to update posts.");
+    if (!authToken || !apiKey) {
+      alert("You must be logged in and have an API Key to update posts.");
       return;
     }
 
     try {
-      await fetch(`https://v2.api.noroff.dev/social/posts/<id>`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({ content }),
-      });
-      fetchPosts();
+      const response = await fetch(
+        `https://v2.api.noroff.dev/social/posts/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+            "X-Noroff-API-Key": apiKey,
+          },
+          body: JSON.stringify({ body: content }),
+        }
+      );
+
+      if (response.ok) {
+        fetchPosts();
+      } else {
+        const errorResponse = await response.text();
+        console.error("Error updating post:", errorResponse);
+        alert(
+          "Failed to update the post. You may not have permission to edit this post."
+        );
+      }
     } catch (error) {
       console.error("Error updating post:", error);
     }
@@ -265,28 +396,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.deletePost = async function (id) {
     const authToken = getAuthToken();
-    console.log("Deleting post with authToken:", authToken);
+    const apiKey = localStorage.getItem("apiKey");
 
-    if (!authToken) {
-      alert("You must be logged in to delete posts.");
+    if (!authToken || !apiKey) {
+      alert("You must be logged in and have an API Key to delete posts.");
       return;
     }
 
     try {
-      await fetch(`https://v2.api.noroff.dev/social/posts/<id>`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-      fetchPosts();
+      const response = await fetch(
+        `https://v2.api.noroff.dev/social/posts/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "X-Noroff-API-Key": apiKey,
+          },
+        }
+      );
+
+      if (response.ok) {
+        fetchPosts();
+      } else {
+        const errorResponse = await response.text();
+        console.error("Error deleting post:", errorResponse);
+        alert(
+          "Failed to delete the post. You may not have permission to delete this post."
+        );
+      }
     } catch (error) {
       console.error("Error deleting post:", error);
     }
   };
 
   window.searchPosts = function () {
-    const searchTerm = searchInput.value;
+    const searchTerm = searchInput.value.trim();
     fetchPosts(searchTerm);
   };
+
+  searchInput.addEventListener("input", () => {
+    searchPosts();
+  });
 });
