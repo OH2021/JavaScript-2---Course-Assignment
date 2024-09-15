@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Post Management</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <h1>Post Management</h1>
+
+      <!-- Registration Form -->
+      <div id="registerForm">
+        <h2>Register</h2>
+        <input type="text" id="registerName" placeholder="Name" required />
+        <input type="email" id="registerEmail" placeholder="Email" required />
+        <input
+          type="password"
+          id="registerPassword"
+          placeholder="Password"
+          required
+        />
+        <button onclick="register()">Register</button>
+      </div>
+
+      <!-- Login Form -->
+      <div id="loginForm">
+        <h2>Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email" required />
+        <input
+          type="password"
+          id="loginPassword"
+          placeholder="Password"
+          required
+        />
+        <button onclick="login()">Login</button>
+      </div>
+
+      <!-- Post Management Form -->
+      <div id="postForm">
+        <h2>Create Post</h2>
+        <textarea
+          id="postContent"
+          rows="4"
+          placeholder="Write your post here..."
+        ></textarea>
+        <button onclick="createPost()">Create Post</button>
+      </div>
+
+      <!-- Post Search -->
+      <div id="searchForm">
+        <h2>Search Posts</h2>
+        <input type="text" id="searchInput" placeholder="Search posts..." />
+        <button onclick="searchPosts()">Search</button>
+      </div>
+
+      <!-- Posts Display -->
+      <div id="posts">
+        <ul id="postList"></ul>
+      </div>
+
+      <!-- Post Details Modal -->
+      <div id="postDetailsModal" style="display: none">
+        <div id="postDetailsContent">
+          <button onclick="closePostDetails()" class="close">&times;</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/posts.js"></script>
+    <script src="js/dom.js"></script>
+  </body>
+</html>
