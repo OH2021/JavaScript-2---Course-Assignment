@@ -1,69 +1,62 @@
 /**
- * Logs in a user by sending their email and password to the authentication API.
- * On successful login, stores the access token in local storage and fetches posts.
+ * Fetches posts from the API and optionally filters them based on a search term.
  *
- * @async
- * @function login
- * @returns {Promise<void>} A promise that resolves when the login process is complete.
- * @throws {Error} Throws an error if there is an issue with logging in or parsing the response.
+ * @param {string} [searchTerm=""] - The term to filter posts by content. Defaults to an empty string if not provided.
+ * @returns {Promise<void>} A promise that resolves when the posts have been fetched and displayed.
  *
- * @description
- * This function sends a POST request to the login endpoint with the provided email and password.
- * If the login is successful and an access token is received, it is stored in local storage.
- * After storing the token, it triggers the creation of an API key and fetches the posts.
+ * @throws {Error} Throws an error if there is an issue with fetching or parsing the posts.
  *
- * The function handles potential errors during the login process, including network errors
- * and issues with parsing the response from the server.
+ * @example
+ * // Fetch posts with no search term (i.e., all posts)
+ * fetchPosts();
+ *
+ * @example
+ * // Fetch posts that include the term "JavaScript"
+ * fetchPosts("JavaScript");
  */
-window.login = async function () {
-  const email = loginEmail.value;
-  const password = loginPassword.value;
+async function fetchPosts(searchTerm = "") {
+  const authToken = getAuthToken();
+  const apiKey = localStorage.getItem("apiKey");
+
+  if (!authToken || !apiKey) {
+    alert("You must be logged in and have an API Key to fetch posts.");
+    return;
+  }
 
   try {
-    const response = await fetch("https://v2.api.noroff.dev/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    const response = await fetch(
+      `https://v2.api.noroff.dev/social/posts?page=${currentPage}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "X-Noroff-API-Key": apiKey,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     const responseText = await response.text();
-    console.log("Login response status:", response.status);
-    console.log("Login response text:", responseText);
 
-    let data;
+    let posts;
     try {
-      data = JSON.parse(responseText);
-      console.log("Parsed login response data:", data);
+      posts = JSON.parse(responseText);
     } catch (jsonError) {
-      console.error("Failed to parse JSON response:", jsonError);
-      alert("Error parsing response. Please try again.");
+      console.error("Failed to parse JSON posts response:", jsonError);
+      alert("Error parsing posts. Please try again.");
       return;
     }
 
     if (response.ok) {
-      console.log("Response OK. Checking for accessToken...");
-      if (data.data && data.data.accessToken) {
-        console.log("AccessToken found:", data.data.accessToken);
-        localStorage.setItem("authToken", data.data.accessToken);
-        console.log(
-          "Token saved in localStorage:",
-          localStorage.getItem("authToken")
-        );
-        await createApiKey();
-        fetchPosts(); // Fetch posts after login
-      } else {
-        console.error("No accessToken received in the response.");
-        alert("Login failed. No accessToken received.");
-      }
+      // Apply the filter before displaying posts
+      const filteredPosts = posts.data.filter((post) =>
+        post.body.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      displayPosts(filteredPosts); // Pass filtered posts to display function
     } else {
-      const errorMessage = data.message || "Login failed. Please try again.";
-      console.error("Error logging in:", errorMessage);
-      alert(errorMessage);
+      console.error("Error fetching posts:", responseText);
+      alert("Failed to fetch posts. Please try again.");
     }
   } catch (error) {
-    console.error("Error logging in:", error);
-    alert("An error occurred while logging in. Please try again.");
+    console.error("Error fetching posts:", error);
   }
-};
+}
